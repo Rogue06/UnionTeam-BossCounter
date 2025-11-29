@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestionnaire de Clan - Raid Shadow Legends</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>🏰 Gestionnaire de Clan RSL</h1>
+        <p class="subtitle">Suivi des membres et des clés de boss</p>
+      </header>
+
+      <nav class="tabs">
+        <button class="tab-btn active" data-tab="members">👥 Membres</button>
+        <button class="tab-btn" data-tab="boss-clan">⚔️ Boss de Clan</button>
+        <button class="tab-btn" data-tab="chimere">🐉 Chimère</button>
+        <button class="tab-btn" data-tab="hydre">🐍 Hydre</button>
+        <button class="tab-btn" data-tab="summary">📊 Résumé</button>
+        <button class="tab-btn" data-tab="monthly">
+          📅 Statistiques Mensuelles
+        </button>
+      </nav>
+
+      <!-- Onglet Membres -->
+      <section id="members-tab" class="tab-content active">
+        <div class="section-header">
+          <h2>Gestion des Membres</h2>
+          <button class="btn btn-primary" id="add-member-btn">
+            + Ajouter un membre
+          </button>
+        </div>
+        <div class="members-list" id="members-list">
+          <!-- Liste des membres générée dynamiquement -->
+        </div>
+      </section>
+
+      <!-- Onglet Boss de Clan -->
+      <section id="boss-clan-tab" class="tab-content">
+        <div class="section-header">
+          <h2>Boss de Clan Classique (Quotidien)</h2>
+          <div class="header-controls">
+            <div class="date-selector">
+              <label>Date :</label>
+              <input type="date" id="boss-clan-date" value="" />
+            </div>
+            <div class="view-controls">
+              <button
+                class="view-btn active"
+                data-view="grid"
+                id="boss-clan-grid-view"
+                title="Vue grille"
+              >
+                <span>⊞</span>
+              </button>
+              <button
+                class="view-btn"
+                data-view="list"
+                id="boss-clan-list-view"
+                title="Vue liste"
+              >
+                <span>☰</span>
+              </button>
+            </div>
+            <div class="filter-controls">
+              <select id="boss-clan-filter">
+                <option value="all">Tous les joueurs</option>
+                <option value="critical">🔴 0 clé</option>
+                <option value="warning">🟠 ≤ 2 clés</option>
+                <option value="ok">🟢 3+ clés</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="quick-actions-bar">
+          <div class="search-container">
+            <input
+              type="text"
+              id="boss-clan-search"
+              placeholder="🔍 Rechercher un joueur..."
+              class="search-input"
+            />
+            <div id="boss-clan-search-results" class="search-results"></div>
+          </div>
+          <button class="btn btn-primary" id="boss-clan-quick-edit-btn">
+            ⚡ Saisie Rapide
+          </button>
+          <button class="btn btn-secondary" id="boss-clan-screenshot-btn">
+            📸 Upload Screenshots
+          </button>
+        </div>
+        <div class="stats-summary" id="boss-clan-stats"></div>
+        <div class="keys-tracking grid-view" id="boss-clan-tracking">
+          <!-- Suivi des clés généré dynamiquement -->
+        </div>
+      </section>
+
+      <!-- Onglet Chimère -->
+      <section id="chimere-tab" class="tab-content">
+        <div class="section-header">
+          <h2>Chimère (Hebdomadaire - 2 clés/semaine)</h2>
+          <div class="header-controls">
+            <div class="date-selector">
+              <label>Semaine :</label>
+              <input type="week" id="chimere-week" value="" />
+            </div>
+            <div class="view-controls">
+              <button
+                class="view-btn active"
+                data-view="grid"
+                id="chimere-grid-view"
+                title="Vue grille"
+              >
+                <span>⊞</span>
+              </button>
+              <button
+                class="view-btn"
+                data-view="list"
+                id="chimere-list-view"
+                title="Vue liste"
+              >
+                <span>☰</span>
+              </button>
+            </div>
+            <div class="filter-controls">
+              <select id="chimere-filter">
+                <option value="all">Tous les joueurs</option>
+                <option value="non-utilise">Non utilisé</option>
+                <option value="partiellement-utilise">
+                  Partiellement utilisé
+                </option>
+                <option value="utilise">Utilisé</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="stats-summary" id="chimere-stats"></div>
+        <div class="keys-tracking grid-view" id="chimere-tracking">
+          <!-- Suivi des clés généré dynamiquement -->
+        </div>
+      </section>
+
+      <!-- Onglet Hydre -->
+      <section id="hydre-tab" class="tab-content">
+        <div class="section-header">
+          <h2>Hydre (Hebdomadaire - 3 clés/semaine)</h2>
+          <div class="header-controls">
+            <div class="date-selector">
+              <label>Semaine :</label>
+              <input type="week" id="hydre-week" value="" />
+            </div>
+            <div class="view-controls">
+              <button
+                class="view-btn active"
+                data-view="grid"
+                id="hydre-grid-view"
+                title="Vue grille"
+              >
+                <span>⊞</span>
+              </button>
+              <button
+                class="view-btn"
+                data-view="list"
+                id="hydre-list-view"
+                title="Vue liste"
+              >
+                <span>☰</span>
+              </button>
+            </div>
+            <div class="filter-controls">
+              <select id="hydre-filter">
+                <option value="all">Tous les joueurs</option>
+                <option value="non-utilise">Non utilisé</option>
+                <option value="partiellement-utilise">
+                  Partiellement utilisé
+                </option>
+                <option value="utilise">Utilisé</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="stats-summary" id="hydre-stats"></div>
+        <div class="keys-tracking grid-view" id="hydre-tracking">
+          <!-- Suivi des clés généré dynamiquement -->
+        </div>
+      </section>
+
+      <!-- Onglet Résumé -->
+      <section id="summary-tab" class="tab-content">
+        <div class="section-header">
+          <h2>Résumé des Utilisations</h2>
+          <div class="summary-filters">
+            <select id="summary-boss-type">
+              <option value="all">Tous les boss</option>
+              <option value="boss-clan">Boss de Clan</option>
+              <option value="chimere">Chimère</option>
+              <option value="hydre">Hydre</option>
+            </select>
+            <select id="summary-status">
+              <option value="all">Tous les statuts</option>
+              <option value="non-utilise">Non utilisé</option>
+              <option value="partiellement-utilise">
+                Partiellement utilisé
+              </option>
+              <option value="utilise">Utilisé</option>
+            </select>
+          </div>
+        </div>
+        <div class="summary-content" id="summary-content">
+          <!-- Résumé généré dynamiquement -->
+        </div>
+      </section>
+
+      <!-- Onglet Statistiques Mensuelles -->
+      <section id="monthly-tab" class="tab-content">
+        <div class="section-header">
+          <h2>Statistiques Mensuelles</h2>
+          <div class="date-selector">
+            <label>Mois :</label>
+            <input type="month" id="monthly-month" value="" />
+          </div>
+        </div>
+        <div class="monthly-stats" id="monthly-stats">
+          <!-- Statistiques mensuelles générées dynamiquement -->
+        </div>
+      </section>
+    </div>
+
+    <!-- Modal pour ajouter/modifier un membre -->
+    <div id="member-modal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2 id="modal-title">Ajouter un membre</h2>
+        <form id="member-form">
+          <input type="hidden" id="member-id" />
+          <div class="form-group">
+            <label for="member-name">Pseudo du joueur :</label>
+            <input type="text" id="member-name" required />
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Enregistrer</button>
+            <button type="button" class="btn btn-secondary" id="cancel-btn">
+              Annuler
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal pour saisie rapide -->
+    <div id="quick-edit-modal" class="modal">
+      <div class="modal-content" style="max-width: 900px">
+        <span class="close">&times;</span>
+        <h2 id="quick-edit-title">⚡ Saisie Rapide - Boss de Clan</h2>
+        <div class="quick-edit-container" id="quick-edit-container">
+          <!-- Liste des joueurs pour saisie rapide -->
+        </div>
+        <div class="form-actions">
+          <button
+            type="button"
+            class="btn btn-primary"
+            id="quick-edit-save-btn"
+          >
+            💾 Enregistrer Tout
+          </button>
+          <button
+            type="button"
+            class="btn btn-secondary"
+            id="quick-edit-cancel-btn"
+          >
+            Annuler
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal pour upload de screenshots -->
+    <div id="screenshot-modal" class="modal">
+      <div class="modal-content" style="max-width: 800px">
+        <span class="close">&times;</span>
+        <h2>📸 Upload Screenshots</h2>
+        <div class="screenshot-upload-area">
+          <input
+            type="file"
+            id="screenshot-files"
+            accept="image/*"
+            multiple
+            style="display: none"
+          />
+          <div
+            class="upload-zone"
+            id="screenshot-upload-zone"
+            onclick="document.getElementById('screenshot-files').click()"
+          >
+            <div class="upload-icon">📸</div>
+            <p>Cliquez ou glissez-déposez vos screenshots ici</p>
+            <small>Formats acceptés : JPG, PNG, WebP</small>
+          </div>
+          <div id="screenshot-preview" class="screenshot-preview"></div>
+        </div>
+        <div class="form-actions">
+          <button
+            type="button"
+            class="btn btn-primary"
+            id="screenshot-process-btn"
+            disabled
+          >
+            🔍 Analyser les Screenshots
+          </button>
+          <button
+            type="button"
+            class="btn btn-secondary"
+            id="screenshot-cancel-btn"
+          >
+            Annuler
+          </button>
+        </div>
+        <div id="screenshot-results" class="screenshot-results"></div>
+      </div>
+    </div>
+
+    <!-- Modal pour enregistrer les clés -->
+    <div id="keys-modal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2 id="keys-modal-title">Enregistrer les clés</h2>
+        <form id="keys-form">
+          <input type="hidden" id="keys-member-id" />
+          <input type="hidden" id="keys-boss-type" />
+          <input type="hidden" id="keys-period" />
+
+          <div class="form-group">
+            <label>Joueur :</label>
+            <div id="keys-member-name" class="info-display"></div>
+          </div>
+
+          <div class="form-group">
+            <label>Difficultés utilisées :</label>
+            <div id="difficulties-container">
+              <!-- Difficultés générées dynamiquement -->
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Ou uploader une capture d'écran :</label>
+            <input type="file" id="screenshot-upload" accept="image/*" />
+            <small
+              >La reconnaissance automatique sera disponible
+              prochainement</small
+            >
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Enregistrer</button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              id="cancel-keys-btn"
+            >
+              Annuler
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/members.js"></script>
+    <script src="js/keys.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>
