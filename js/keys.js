@@ -215,17 +215,34 @@ const KeysManager = {
                         <h4>Détails :</h4>
                         ${memberKeys.details && memberKeys.details.length > 0 
                             ? `<div class="difficulty-list">
-                                ${memberKeys.details.map(d => 
-                                    `<span class="difficulty-badge">${d.difficulte} x${d.nombre}</span>`
+                                ${memberKeys.details.map((d, idx) => 
+                                    `<span class="difficulty-badge">
+                                        ${d.difficulte} x${d.nombre}
+                                        <button class="badge-remove" onclick="KeysManager.removeDifficultyFromCard('${member.id}', 'boss-clan', '${date}', '${d.difficulte}', ${idx})" title="Supprimer">×</button>
+                                    </span>`
                                 ).join('')}
                                </div>`
                             : '<p style="color: #999; font-size: 0.9em;">Aucune clé</p>'
                         }
                     </div>
+                    <div class="quick-edit-on-card">
+                        <div class="quick-edit-row">
+                            <select class="quick-difficulty-select" data-member-id="${member.id}" data-boss-type="boss-clan" data-period="${date}">
+                                <option value="">Choisir difficulté</option>
+                                ${this.DIFFICULTIES.map(d => `<option value="${d}">${d}</option>`).join('')}
+                            </select>
+                            <div class="quick-count-controls">
+                                <button class="btn-counter minus" onclick="KeysManager.quickAdjustKeys('${member.id}', 'boss-clan', '${date}', -1)" title="Réduire">−</button>
+                                <input type="number" class="quick-count-input" value="1" min="1" data-member-id="${member.id}" data-boss-type="boss-clan" data-period="${date}">
+                                <button class="btn-counter plus" onclick="KeysManager.quickAdjustKeys('${member.id}', 'boss-clan', '${date}', 1)" title="Ajouter">+</button>
+                            </div>
+                            <button class="btn btn-primary btn-small" onclick="KeysManager.quickAddKeys('${member.id}', 'boss-clan', '${date}')">✓ Ajouter</button>
+                        </div>
+                    </div>
                     ` : ''}
-                    <div style="margin-top: ${view === 'list' ? '0' : '15px'};">
-                        <button class="btn btn-primary btn-small" onclick="KeysManager.openKeysModal('${member.id}', 'boss-clan', '${date}')">
-                            ${memberKeys.used > 0 ? '✏️ Modifier' : '➕ Enregistrer'}
+                    <div style="margin-top: ${view === 'list' ? '0' : '15px'}; display: flex; gap: 10px;">
+                        <button class="btn btn-secondary btn-small" onclick="KeysManager.openKeysModal('${member.id}', 'boss-clan', '${date}')">
+                            ✏️ Modifier
                         </button>
                     </div>
                 </div>
@@ -266,19 +283,36 @@ const KeysManager = {
                         </div>
                     </div>
                     <div class="keys-details">
-                        <h4>Détails des clés utilisées :</h4>
+                        <h4>Détails :</h4>
                         ${memberKeys.details && memberKeys.details.length > 0 
                             ? `<div class="difficulty-list">
-                                ${memberKeys.details.map(d => 
-                                    `<span class="difficulty-badge">${d.difficulte} x${d.nombre}</span>`
+                                ${memberKeys.details.map((d, idx) => 
+                                    `<span class="difficulty-badge">
+                                        ${d.difficulte} x${d.nombre}
+                                        <button class="badge-remove" onclick="KeysManager.removeDifficultyFromCard('${member.id}', 'chimere', '${week}', '${d.difficulte}', ${idx})" title="Supprimer">×</button>
+                                    </span>`
                                 ).join('')}
                                </div>`
-                            : '<p style="color: #999;">Aucune clé enregistrée</p>'
+                            : '<p style="color: #999; font-size: 0.9em;">Aucune clé</p>'
                         }
                     </div>
-                    <div style="margin-top: 15px;">
-                        <button class="btn btn-primary btn-small" onclick="KeysManager.openKeysModal('${member.id}', 'chimere', '${week}')">
-                            ${memberKeys.used > 0 ? 'Modifier' : 'Enregistrer'} les clés
+                    <div class="quick-edit-on-card">
+                        <div class="quick-edit-row">
+                            <select class="quick-difficulty-select" data-member-id="${member.id}" data-boss-type="chimere" data-period="${week}">
+                                <option value="">Choisir difficulté</option>
+                                ${this.DIFFICULTIES.map(d => `<option value="${d}">${d}</option>`).join('')}
+                            </select>
+                            <div class="quick-count-controls">
+                                <button class="btn-counter minus" onclick="KeysManager.quickAdjustKeys('${member.id}', 'chimere', '${week}', -1)" title="Réduire">−</button>
+                                <input type="number" class="quick-count-input" value="1" min="1" max="2" data-member-id="${member.id}" data-boss-type="chimere" data-period="${week}">
+                                <button class="btn-counter plus" onclick="KeysManager.quickAdjustKeys('${member.id}', 'chimere', '${week}', 1)" title="Ajouter">+</button>
+                            </div>
+                            <button class="btn btn-primary btn-small" onclick="KeysManager.quickAddKeys('${member.id}', 'chimere', '${week}')">✓ Ajouter</button>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px; display: flex; gap: 10px;">
+                        <button class="btn btn-secondary btn-small" onclick="KeysManager.openKeysModal('${member.id}', 'chimere', '${week}')">
+                            ✏️ Modifier
                         </button>
                     </div>
                 </div>
@@ -319,19 +353,36 @@ const KeysManager = {
                         </div>
                     </div>
                     <div class="keys-details">
-                        <h4>Détails des clés utilisées :</h4>
+                        <h4>Détails :</h4>
                         ${memberKeys.details && memberKeys.details.length > 0 
                             ? `<div class="difficulty-list">
-                                ${memberKeys.details.map(d => 
-                                    `<span class="difficulty-badge">${d.difficulte} x${d.nombre}</span>`
+                                ${memberKeys.details.map((d, idx) => 
+                                    `<span class="difficulty-badge">
+                                        ${d.difficulte} x${d.nombre}
+                                        <button class="badge-remove" onclick="KeysManager.removeDifficultyFromCard('${member.id}', 'hydre', '${week}', '${d.difficulte}', ${idx})" title="Supprimer">×</button>
+                                    </span>`
                                 ).join('')}
                                </div>`
-                            : '<p style="color: #999;">Aucune clé enregistrée</p>'
+                            : '<p style="color: #999; font-size: 0.9em;">Aucune clé</p>'
                         }
                     </div>
-                    <div style="margin-top: 15px;">
-                        <button class="btn btn-primary btn-small" onclick="KeysManager.openKeysModal('${member.id}', 'hydre', '${week}')">
-                            ${memberKeys.used > 0 ? 'Modifier' : 'Enregistrer'} les clés
+                    <div class="quick-edit-on-card">
+                        <div class="quick-edit-row">
+                            <select class="quick-difficulty-select" data-member-id="${member.id}" data-boss-type="hydre" data-period="${week}">
+                                <option value="">Choisir difficulté</option>
+                                ${this.DIFFICULTIES.map(d => `<option value="${d}">${d}</option>`).join('')}
+                            </select>
+                            <div class="quick-count-controls">
+                                <button class="btn-counter minus" onclick="KeysManager.quickAdjustKeys('${member.id}', 'hydre', '${week}', -1)" title="Réduire">−</button>
+                                <input type="number" class="quick-count-input" value="1" min="1" max="3" data-member-id="${member.id}" data-boss-type="hydre" data-period="${week}">
+                                <button class="btn-counter plus" onclick="KeysManager.quickAdjustKeys('${member.id}', 'hydre', '${week}', 1)" title="Ajouter">+</button>
+                            </div>
+                            <button class="btn btn-primary btn-small" onclick="KeysManager.quickAddKeys('${member.id}', 'hydre', '${week}')">✓ Ajouter</button>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px; display: flex; gap: 10px;">
+                        <button class="btn btn-secondary btn-small" onclick="KeysManager.openKeysModal('${member.id}', 'hydre', '${week}')">
+                            ✏️ Modifier
                         </button>
                     </div>
                 </div>
@@ -684,6 +735,134 @@ const KeysManager = {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    },
+
+    // Ajouter rapidement des clés depuis la carte
+    quickAddKeys(memberId, bossType, period) {
+        const select = document.querySelector(`.quick-difficulty-select[data-member-id="${memberId}"][data-boss-type="${bossType}"]`);
+        const input = document.querySelector(`.quick-count-input[data-member-id="${memberId}"][data-boss-type="${bossType}"]`);
+        
+        if (!select || !input) return;
+        
+        const difficulty = select.value;
+        const count = parseInt(input.value) || 1;
+        
+        if (!difficulty) {
+            alert('Veuillez sélectionner une difficulté');
+            return;
+        }
+        
+        // Vérifier les limites pour Chimère et Hydre
+        const maxKeys = bossType === 'chimere' ? 2 : (bossType === 'hydre' ? 3 : null);
+        
+        // Charger les données existantes
+        let keys = {};
+        if (bossType === 'boss-clan') {
+            keys = DataManager.getBossClanKeysForDate(period);
+        } else if (bossType === 'chimere') {
+            keys = DataManager.getChimereKeysForWeek(period);
+        } else if (bossType === 'hydre') {
+            keys = DataManager.getHydreKeysForWeek(period);
+        }
+        
+        const memberKeys = keys[memberId] || { used: 0, details: [] };
+        
+        // Vérifier la limite totale
+        if (maxKeys && (memberKeys.used + count) > maxKeys) {
+            alert(`Limite atteinte : maximum ${maxKeys} clé(s) par semaine pour ${bossType === 'chimere' ? 'la Chimère' : 'l\'Hydre'}`);
+            return;
+        }
+        
+        // Ajouter ou mettre à jour la difficulté
+        const existing = memberKeys.details.find(d => d.difficulte === difficulty);
+        if (existing) {
+            existing.nombre += count;
+        } else {
+            memberKeys.details.push({ difficulte: difficulty, nombre: count });
+        }
+        
+        memberKeys.used += count;
+        
+        // Sauvegarder
+        if (bossType === 'boss-clan') {
+            keys[memberId] = memberKeys;
+            DataManager.saveBossClanKeysForDate(period, keys);
+        } else if (bossType === 'chimere') {
+            keys[memberId] = memberKeys;
+            DataManager.saveChimereKeysForWeek(period, keys);
+        } else if (bossType === 'hydre') {
+            keys[memberId] = memberKeys;
+            DataManager.saveHydreKeysForWeek(period, keys);
+        }
+        
+        // Réinitialiser les champs
+        select.value = '';
+        input.value = 1;
+        
+        // Rafraîchir l'affichage
+        this.updateAllTabs();
+    },
+
+    // Ajuster rapidement le nombre de clés (boutons + et -)
+    quickAdjustKeys(memberId, bossType, period, delta) {
+        const input = document.querySelector(`.quick-count-input[data-member-id="${memberId}"][data-boss-type="${bossType}"]`);
+        if (!input) return;
+        
+        const maxKeys = bossType === 'chimere' ? 2 : (bossType === 'hydre' ? 3 : null);
+        const currentValue = parseInt(input.value) || 1;
+        let newValue = Math.max(1, currentValue + delta);
+        
+        // Respecter la limite max si elle existe
+        if (maxKeys) {
+            newValue = Math.min(newValue, maxKeys);
+        }
+        
+        input.value = newValue;
+    },
+
+    // Supprimer une difficulté depuis la carte
+    removeDifficultyFromCard(memberId, bossType, period, difficulty, index) {
+        if (!confirm(`Supprimer ${difficulty} ?`)) return;
+        
+        // Charger les données existantes
+        let keys = {};
+        if (bossType === 'boss-clan') {
+            keys = DataManager.getBossClanKeysForDate(period);
+        } else if (bossType === 'chimere') {
+            keys = DataManager.getChimereKeysForWeek(period);
+        } else if (bossType === 'hydre') {
+            keys = DataManager.getHydreKeysForWeek(period);
+        }
+        
+        const memberKeys = keys[memberId] || { used: 0, details: [] };
+        
+        // Trouver et supprimer la difficulté
+        const detailIndex = memberKeys.details.findIndex(d => d.difficulte === difficulty);
+        if (detailIndex !== -1) {
+            const removedCount = memberKeys.details[detailIndex].nombre;
+            memberKeys.details.splice(detailIndex, 1);
+            memberKeys.used = Math.max(0, memberKeys.used - removedCount);
+        }
+        
+        // Si plus de détails, réinitialiser
+        if (memberKeys.details.length === 0) {
+            memberKeys.used = 0;
+        }
+        
+        // Sauvegarder
+        if (bossType === 'boss-clan') {
+            keys[memberId] = memberKeys;
+            DataManager.saveBossClanKeysForDate(period, keys);
+        } else if (bossType === 'chimere') {
+            keys[memberId] = memberKeys;
+            DataManager.saveChimereKeysForWeek(period, keys);
+        } else if (bossType === 'hydre') {
+            keys[memberId] = memberKeys;
+            DataManager.saveHydreKeysForWeek(period, keys);
+        }
+        
+        // Rafraîchir l'affichage
+        this.updateAllTabs();
     }
 };
 
