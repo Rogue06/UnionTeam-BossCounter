@@ -547,8 +547,7 @@ function setupQuickActions() {
 
     if (screenshotProcessBtn) {
         screenshotProcessBtn.addEventListener('click', () => {
-            // TODO: Implémenter la reconnaissance d'image
-            alert('La reconnaissance automatique des screenshots sera disponible prochainement. Pour l\'instant, utilisez la saisie rapide.');
+            processScreenshots();
         });
     }
 }
@@ -606,6 +605,467 @@ window.addQuickEditDifficulty = function(memberId) {
     newRow.querySelector('.count-input').value = '0';
     item.parentNode.insertBefore(newRow, item.nextSibling);
 };
+
+// Traiter les screenshots avec OCR
+async function processScreenshots() {
+    const screenshotItems = document.querySelectorAll('.screenshot-item img');
+    const resultsContainer = document.getElementById('screenshot-results');
+    const processBtn = document.getElementById('screenshot-process-btn');
+    
+    if (screenshotItems.length === 0) {
+        alert('Veuillez d\'abord uploader des screenshots');
+        return;
+    }
+    
+    // Désactiver le bouton pendant le traitement
+    processBtn.disabled = true;
+    processBtn.textContent = '⏳ Analyse en cours...';
+    resultsContainer.innerHTML = '<p>⏳ Analyse des screenshots en cours... Cela peut prendre quelques secondes par image.</p>';
+    resultsContainer.classList.add('active');
+    
+    const allResults = [];
+    const bossType = 'boss-clan'; // Pour l'instant, on se concentre sur le Boss de Clan
+    const date = document.getElementById('boss-clan-date').value || new Date().toISOString().split('T')[0];
+    
+    try {
+        for (let i = 0; i < screenshotItems.length; i++) {
+            const img = screenshotItems[i];
+            const imgSrc = img.src;
+            
+            // Afficher la progression
+            resultsContainer.innerHTML = `<p>⏳ Analyse de l'image ${i + 1}/${screenshotItems.length}...</p>`;
+            
+            // Utiliser Tesseract.js pour extraire le texte
+            const { data: { text } } = await Tesseract.recognize(imgSrc, 'fra+eng', {
+                logger: m => {
+                    if (m.status === 'recognizing text') {
+                        // Afficher la progression
+                        const progress = Math.round(m.progress * 100);
+                        resultsContainer.innerHTML = `<p>⏳ Analyse de l'image ${i + 1}/${screenshotItems.length}... ${progress}%</p>`;
+                    }
+                }
+            });
+            
+            // Analyser le texte extrait
+            const extractedData = parseScreenshotText(text);
+            allResults.push(...extractedData);
+        }
+        
+        // Afficher les résultats pour confirmation avant application
+        if (allResults.length > 0) {
+            displayExtractionResultsForConfirmation(allResults, resultsContainer, bossType, date);
+        } else {
+            resultsContainer.innerHTML = `
+                <p>❌ Aucune donnée n'a pu être extraite des screenshots.</p>
+                <p><strong>Conseils :</strong></p>
+                <ul style="text-align: left; margin: 10px 0; padding-left: 20px;">
+                    <li>Assurez-vous que les images sont claires et nettes</li>
+                    <li>Vérifiez que les noms des joueurs sont visibles</li>
+                    <li>Les screenshots doivent montrer le classement avec les noms et clés</li>
+                    <li>Essayez de capturer l'écran avec une meilleure résolution</li>
+                </ul>
+            `;
+        }
+        
+    } catch (error) {
+        console.error('Erreur lors de l\'analyse OCR:', error);
+        resultsContainer.innerHTML = `<p>❌ Erreur lors de l'analyse : ${error.message}</p>`;
+    } finally {
+        processBtn.disabled = false;
+        processBtn.textContent = '🔍 Analyser les Screenshots';
+    }
+}
+
+// Parser le texte extrait pour trouver les joueurs et leurs clés
+function parseScreenshotText(text) {
+    const results = [];
+    const fullText = text.toLowerCase();
+    const originalText = text; // Garder le texte original pour les regex
+    
+    // Liste des difficultés possibles (variations)
+    const difficultyMap = {
+        'ultra-cauchemar': 'Ultra-Cauchemar',
+        'ultra cauchemar': 'Ultra-Cauchemar',
+        'ultracauchemar': 'Ultra-Cauchemar',
+        'cauchemar': 'Cauchemar',
+        'brutal': 'Brutal',
+        'difficile': 'Difficile',
+        'normal': 'Normal',
+        'facile': 'Facile'
+    };
+    
+    const members = DataManager.getMembers();
+    
+    // D'abord, détecter la difficulté globale du screenshot
+    // (généralement visible dans le panneau de droite, surligné en bleu)
+    let detectedDifficulty = null;
+    let difficultyPriority = -1;
+    
+    for (const [key, value] of Object.entries(difficultyMap)) {
+        const index = fullText.indexOf(key);
+        if (index !== -1) {
+            // Prioriser les difficultés les plus élevées
+            const priority = Object.keys(difficultyMap).indexOf(key);
+            if (priority > difficultyPriority) {
+                detectedDifficulty = value;
+                difficultyPriority = priority;
+            }
+        }
+    }
+    
+    // Si aucune difficulté n'est détectée, utiliser Ultra-Cauchemar par défaut
+    if (!detectedDifficulty) {
+        detectedDifficulty = 'Ultra-Cauchemar';
+    }
+    
+    // Chercher chaque membre dans le texte avec différentes variations
+    members.forEach(member => {
+        const memberName = member.name;
+        const memberNameLower = memberName.toLowerCase();
+        
+        // Créer des variations du nom pour la recherche
+        const nameVariations = [
+            memberName,
+            memberNameLower,
+            memberName.replace(/_/g, ' '),
+            memberName.replace(/_/g, '').replace(/\s/g, ''),
+            memberName.replace(/\s/g, '_'),
+            memberName.replace(/\s/g, ''),
+            // Gérer les cas où le nom est tronqué dans le screenshot
+            memberName.substring(0, 10),
+            memberName.substring(0, 15)
+        ];
+        
+        // Chercher le nom du membre dans le texte (recherche flexible)
+        let foundMember = false;
+        let foundVariation = null;
+        
+        for (const variation of nameVariations) {
+            if (variation.length < 3) continue; // Ignorer les variations trop courtes
+            
+            const variationLower = variation.toLowerCase();
+            // Chercher le nom complet ou une partie significative
+            if (fullText.includes(variationLower) || 
+                originalText.match(new RegExp(variation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'))) {
+                foundMember = true;
+                foundVariation = variation;
+                break;
+            }
+        }
+        
+        if (!foundMember) return;
+        
+        // Chercher le nombre de clés pour ce membre
+        // Patterns possibles dans le contexte du screenshot :
+        // - "1 clé" près du nom
+        // - "(1)" dans le contexte
+        // - "x1" ou "1x"
+        // - "Keys Used: 1" ou équivalent
+        
+        let keysFound = 0;
+        
+        // Pattern 1: Chercher "X clé" ou "X clés" près du nom
+        const keyPattern1 = new RegExp(
+            `(${foundVariation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})[^\\n]{0,50}(\\d+)\\s*cl[ée]s?`,
+            'i'
+        );
+        const match1 = originalText.match(keyPattern1);
+        if (match1) {
+            const keys = parseInt(match1[2]);
+            if (keys >= 1 && keys <= 10) {
+                keysFound = keys;
+            }
+        }
+        
+        // Pattern 2: Chercher "(X)" près du nom (souvent utilisé dans les classements)
+        if (keysFound === 0) {
+            const keyPattern2 = new RegExp(
+                `(${foundVariation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})[^\\n]{0,30}\\((\\d+)\\)`,
+                'i'
+            );
+            const match2 = originalText.match(keyPattern2);
+            if (match2) {
+                const keys = parseInt(match2[2]);
+                if (keys >= 1 && keys <= 10) {
+                    keysFound = keys;
+                }
+            }
+        }
+        
+        // Pattern 3: Chercher "xX" ou "Xx" (notation compacte)
+        if (keysFound === 0) {
+            const keyPattern3 = new RegExp(
+                `(${foundVariation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})[^\\n]{0,30}[xX]\\s*(\\d+)`,
+                'i'
+            );
+            const match3 = originalText.match(keyPattern3);
+            if (match3) {
+                const keys = parseInt(match3[2]);
+                if (keys >= 1 && keys <= 10) {
+                    keysFound = keys;
+                }
+            }
+        }
+        
+        // Pattern 4: Si le joueur est dans un classement, chercher des nombres près de son nom
+        if (keysFound === 0) {
+            // Chercher un nombre entre 1 et 10 dans un contexte proche
+            const contextPattern = new RegExp(
+                `(${foundVariation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})[^\\n]{0,80}([1-9]|10)(?![0-9])`,
+                'i'
+            );
+            const contextMatch = originalText.match(contextPattern);
+            if (contextMatch) {
+                const potentialKeys = parseInt(contextMatch[2]);
+                if (potentialKeys >= 1 && potentialKeys <= 10) {
+                    keysFound = potentialKeys;
+                }
+            }
+        }
+        
+        // Par défaut, si le joueur est trouvé mais pas de clés détectées, on assume 1 clé
+        if (keysFound === 0 && foundMember) {
+            keysFound = 1; // Par défaut, 1 clé si le joueur est dans le screenshot
+        }
+        
+        if (keysFound > 0) {
+            results.push({
+                player: member.name,
+                difficulty: detectedDifficulty,
+                keys: keysFound
+            });
+        }
+    });
+    
+    return results;
+}
+
+// Appliquer les données extraites
+function applyExtractedData(results, bossType, period) {
+    const keys = bossType === 'boss-clan' 
+        ? DataManager.getBossClanKeysForDate(period)
+        : {};
+    
+    const members = DataManager.getMembers();
+    let appliedCount = 0;
+    
+    results.forEach(result => {
+        // Trouver le membre par nom (recherche flexible)
+        const member = members.find(m => {
+            const memberName = m.name.toLowerCase().replace(/[_\s]/g, '');
+            const resultName = result.player.toLowerCase().replace(/[_\s]/g, '');
+            return memberName === resultName || 
+                   memberName.includes(resultName) || 
+                   resultName.includes(memberName);
+        });
+        
+        if (!member) {
+            console.warn(`Joueur non trouvé: ${result.player}`);
+            return;
+        }
+        
+        // Charger ou créer les données du membre
+        const memberKeys = keys[member.id] || { used: 0, details: [] };
+        
+        // Ajouter ou mettre à jour la difficulté
+        const existing = memberKeys.details.find(d => d.difficulte === result.difficulty);
+        if (existing) {
+            existing.nombre += result.keys;
+        } else {
+            memberKeys.details.push({
+                difficulte: result.difficulty,
+                nombre: result.keys
+            });
+        }
+        
+        memberKeys.used += result.keys;
+        keys[member.id] = memberKeys;
+        appliedCount++;
+    });
+    
+    // Sauvegarder
+    if (bossType === 'boss-clan') {
+        DataManager.saveBossClanKeysForDate(period, keys);
+    }
+    
+    // Rafraîchir l'affichage
+    KeysManager.renderBossClanTracking(period);
+    
+    return appliedCount;
+}
+
+// Afficher les résultats pour confirmation avant application
+function displayExtractionResultsForConfirmation(results, container, bossType, date) {
+    const grouped = {};
+    results.forEach(r => {
+        if (!grouped[r.player]) {
+            grouped[r.player] = [];
+        }
+        grouped[r.player].push(r);
+    });
+    
+    container.innerHTML = `
+        <h3>📋 Données extraites (${results.length} entrée(s)) :</h3>
+        <p style="color: #666; font-size: 0.9em; margin-bottom: 15px;">
+            Vérifiez les données ci-dessous et corrigez si nécessaire avant d'appliquer.
+        </p>
+        <div style="max-height: 400px; overflow-y: auto; margin: 15px 0;">
+            ${Object.keys(grouped).map((player, idx) => {
+                const playerResults = grouped[player];
+                return `
+                    <div class="extracted-item" style="padding: 15px; margin: 10px 0; background: #f8f9fa; border-radius: 8px; border: 2px solid #e9ecef;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                            <strong style="color: #333; flex: 1;">${player}</strong>
+                            <button class="btn btn-danger btn-small" onclick="removeExtractedItem(${idx})" style="padding: 5px 10px;">×</button>
+                        </div>
+                        ${playerResults.map((r, rIdx) => `
+                            <div style="display: flex; align-items: center; gap: 10px; margin: 5px 0;">
+                                <select class="extracted-difficulty" data-player="${player}" data-index="${rIdx}" style="flex: 1; padding: 6px; border: 2px solid #ddd; border-radius: 5px;">
+                                    ${KeysManager.DIFFICULTIES.map(d => 
+                                        `<option value="${d}" ${d === r.difficulty ? 'selected' : ''}>${d}</option>`
+                                    ).join('')}
+                                </select>
+                                <input type="number" class="extracted-keys" value="${r.keys}" min="1" max="10" data-player="${player}" data-index="${rIdx}" style="width: 80px; padding: 6px; border: 2px solid #ddd; border-radius: 5px; text-align: center;">
+                                <span style="min-width: 50px;">clé(s)</span>
+                                <button class="btn btn-danger btn-small" onclick="removeExtractedDifficulty('${player}', ${rIdx})" style="padding: 5px 10px;">×</button>
+                            </div>
+                        `).join('')}
+                        <button class="btn btn-secondary btn-small" onclick="addExtractedDifficulty('${player}')" style="margin-top: 5px; width: 100%;">+ Ajouter difficulté</button>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+        <div style="margin-top: 20px; display: flex; gap: 10px;">
+            <button class="btn btn-primary" onclick="confirmAndApplyExtractedData('${bossType}', '${date}')" style="flex: 1;">
+                ✅ Appliquer les Données
+            </button>
+            <button class="btn btn-secondary" onclick="clearExtractedData()">
+                Annuler
+            </button>
+        </div>
+    `;
+    
+    // Stocker les résultats temporairement pour l'application
+    window.extractedData = results;
+}
+
+// Variables globales pour la gestion des données extraites
+window.extractedData = [];
+window.extractedDataGrouped = {};
+
+// Fonctions globales pour la gestion des données extraites
+window.removeExtractedItem = function(index) {
+    const items = document.querySelectorAll('.extracted-item');
+    if (items[index]) {
+        items[index].remove();
+    }
+};
+
+window.removeExtractedDifficulty = function(player, index) {
+    // Cette fonction sera gérée lors de la confirmation
+    const item = document.querySelector(`.extracted-item:has(select[data-player="${player}"][data-index="${index}"])`);
+    if (item) {
+        const difficultyRow = item.querySelector(`select[data-player="${player}"][data-index="${index}"]`)?.parentElement;
+        if (difficultyRow) {
+            difficultyRow.remove();
+        }
+    }
+};
+
+window.addExtractedDifficulty = function(player) {
+    // Trouver l'item par le texte du joueur
+    const items = document.querySelectorAll('.extracted-item');
+    items.forEach(it => {
+        const playerName = it.querySelector('strong')?.textContent.trim();
+        if (playerName === player) {
+            const newRow = document.createElement('div');
+            newRow.style.cssText = 'display: flex; align-items: center; gap: 10px; margin: 5px 0;';
+            const maxIndex = Array.from(it.querySelectorAll('.extracted-difficulty'))
+                .map(el => parseInt(el.getAttribute('data-index')) || 0)
+                .reduce((a, b) => Math.max(a, b), -1);
+            const newIndex = maxIndex + 1;
+            newRow.innerHTML = `
+                <select class="extracted-difficulty" data-player="${player}" data-index="${newIndex}" style="flex: 1; padding: 6px; border: 2px solid #ddd; border-radius: 5px;">
+                    ${KeysManager.DIFFICULTIES.map(d => `<option value="${d}">${d}</option>`).join('')}
+                </select>
+                <input type="number" class="extracted-keys" value="1" min="1" max="10" data-player="${player}" data-index="${newIndex}" style="width: 80px; padding: 6px; border: 2px solid #ddd; border-radius: 5px; text-align: center;">
+                <span style="min-width: 50px;">clé(s)</span>
+                <button class="btn btn-danger btn-small" onclick="this.parentElement.remove()" style="padding: 5px 10px;">×</button>
+            `;
+            const addBtn = it.querySelector('button:last-child');
+            if (addBtn) {
+                it.insertBefore(newRow, addBtn);
+            }
+        }
+    });
+};
+
+window.confirmAndApplyExtractedData = function(bossType, date) {
+    const items = document.querySelectorAll('.extracted-item');
+    const finalResults = [];
+    
+    items.forEach(item => {
+        const playerName = item.querySelector('strong')?.textContent.trim();
+        if (!playerName) return;
+        
+        const difficulties = item.querySelectorAll('.extracted-difficulty');
+        const keysInputs = item.querySelectorAll('.extracted-keys');
+        
+        difficulties.forEach((select, index) => {
+            const difficulty = select.value;
+            const keysInput = keysInputs[index];
+            if (keysInput) {
+                const keys = parseInt(keysInput.value) || 1;
+                if (difficulty && keys > 0) {
+                    finalResults.push({
+                        player: playerName,
+                        difficulty: difficulty,
+                        keys: keys
+                    });
+                }
+            }
+        });
+    });
+    
+    if (finalResults.length === 0) {
+        alert('Aucune donnée à appliquer');
+        return;
+    }
+    
+    const appliedCount = applyExtractedData(finalResults, bossType, date);
+    displayExtractionResults(finalResults, document.getElementById('screenshot-results'), appliedCount);
+};
+
+window.clearExtractedData = function() {
+    document.getElementById('screenshot-results').innerHTML = '';
+    document.getElementById('screenshot-results').classList.remove('active');
+};
+
+// Afficher les résultats après application
+function displayExtractionResults(results, container, appliedCount) {
+    const grouped = {};
+    results.forEach(r => {
+        if (!grouped[r.player]) {
+            grouped[r.player] = [];
+        }
+        grouped[r.player].push(r);
+    });
+    
+    container.innerHTML = `
+        <h3>✅ Données appliquées (${appliedCount} joueur(s)) :</h3>
+        <div style="max-height: 300px; overflow-y: auto; margin: 15px 0;">
+            ${Object.keys(grouped).map(player => `
+                <div style="padding: 12px; margin: 8px 0; background: #d4edda; border-radius: 8px; border-left: 4px solid #28a745;">
+                    <strong style="color: #155724;">${player}</strong> :
+                    ${grouped[player].map(r => `<span style="background: #28a745; color: white; padding: 4px 8px; border-radius: 4px; margin-left: 5px;">${r.difficulty} x${r.keys}</span>`).join('')}
+                </div>
+            `).join('')}
+        </div>
+        <p style="margin-top: 15px; padding: 15px; background: #d4edda; color: #155724; border-radius: 8px; font-weight: 600;">
+            ✅ ${appliedCount} joueur(s) mis à jour avec succès !
+        </p>
+    `;
+}
 
 // Sauvegarder la saisie rapide
 function saveQuickEdit(bossType) {
